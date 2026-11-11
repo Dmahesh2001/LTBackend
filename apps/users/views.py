@@ -1,5 +1,8 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from apps.core.throttling import ScopedRateThrottle
 
 from .serializers import RegisterSerializer, UserSerializer
 
@@ -10,6 +13,16 @@ class RegisterView(generics.CreateAPIView):
 
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'register'
+
+
+@extend_schema(tags=['Auth'])
+class LoginView(TokenObtainPairView):
+    """Log in with email and password. Returns an access and a refresh token."""
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'login'
 
 
 @extend_schema(tags=['Users'])

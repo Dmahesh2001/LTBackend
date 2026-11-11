@@ -1,0 +1,39 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Postgres is on Neon and Redis on Upstash (both free); paste their URLs when Render asks.
+services:
+  - type: web
+    name: loveandtails-api
+    runtime: python
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: ./build.sh
+    startCommand: gunicorn loveandtails.wsgi --workers 2 --access-logfile -
+    # Lightweight check: doesn't touch the database or Redis (see apps/core/views.py).
+    healthCheckPath: /api/v1/health/live/
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      # The *.onrender.com hostname is added automatically from RENDER_EXTERNAL_HOSTNAME.
+      - key: DJANGO_ALLOWED_HOSTS
+        value: api.loveandtails.com
+      # Neon connection string: postgresql://...neon.tech/neondb?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      # Upstash Redis URL: rediss://default:...@....upstash.io:6379
+      - key: REDIS_URL
+        sync: false
+      # Render's edge (Cloudflare) + Render's proxy each add an X-Forwarded-For entry.
+      # Keep api.loveandtails.com as "DNS only" in Cloudflare, or this number changes.
+      - key: NUM_PROXIES
+        value: "2"
+      # Web app origins, comma-separated, e.g. https://loveandtails.com,https://www.loveandtails.com
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      # Non-obvious admin path ending in a slash, e.g. manage-7f3k/
+      - key: DJANGO_ADMIN_URL
+        sync: false
+      - key: API_DOCS_PUBLIC
+        value: "False"
