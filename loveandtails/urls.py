@@ -9,6 +9,7 @@ api_v1 = [
     path('', include('apps.core.urls')),
     path('', include('apps.users.urls')),
     path('', include('apps.waitlist.urls')),
+    path('', include('apps.feeds.urls')),
 ]
 
 urlpatterns = [

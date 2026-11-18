@@ -12,6 +12,7 @@ apps/
   core/              Shared utilities, health check
   users/             Custom User model (email login), auth + profile endpoints
   waitlist/          Waitlist signups + confirmation email
+  feeds/             Feed posts (photo + caption), likes, comments, saved posts
 docker-compose.yml   Local PostgreSQL + Redis
 .env.example         Environment variable template
 ```
@@ -80,6 +81,15 @@ The docs are public in development. In production (`DJANGO_DEBUG=False`) they ar
 | POST | `/api/v1/auth/logout/` | – | Blacklist a refresh token |
 | GET / PATCH | `/api/v1/users/me/` | Bearer | Current user's profile |
 | POST | `/api/v1/waitlist/` | – | Join the waitlist (sends a confirmation email) |
+| GET | `/api/v1/posts/` | Bearer | The feed, newest first. `?author=<user id>` for one user's posts |
+| POST | `/api/v1/posts/` | Bearer | Create a post (`multipart/form-data`: `caption`, `image`) |
+| GET / PATCH / DELETE | `/api/v1/posts/{id}/` | Bearer | Get a post; edit its caption (author); delete it (author or staff) |
+| POST / DELETE | `/api/v1/posts/{id}/like/` | Bearer | Like / unlike. Returns `{"liked", "like_count"}` |
+| GET | `/api/v1/posts/{id}/likes/` | Bearer | Users who liked a post |
+| POST / DELETE | `/api/v1/posts/{id}/save/` | Bearer | Save / unsave (private bookmarks) |
+| GET | `/api/v1/posts/saved/` | Bearer | Your saved posts, most recently saved first |
+| GET / POST | `/api/v1/posts/{id}/comments/` | Bearer | List comments (oldest first) / add a comment |
+| GET / PATCH / DELETE | `/api/v1/comments/{id}/` | Bearer | Get; edit (comment author); delete (comment author, post author or staff) |
 
 Clients send `Authorization: Bearer <access token>`. Refresh tokens are rotated on use and the old one is blacklisted.
 
@@ -102,6 +112,14 @@ Clients send `Authorization: Bearer <access token>`. Refresh tokens are rotated 
 | Logging | Warnings, errors and security events (`401`, `403`, `429`, bad hosts) go to stdout |
 
 Before deploying, run `python manage.py check --deploy` with production settings.
+
+### Feed
+
+Every post in the feed includes `like_count`, `comment_count`, and the viewer's own `is_liked` and `is_saved`, so the app can draw the like and save buttons without extra requests. Liking, unliking, saving and unsaving are idempotent: repeating them is safe, which suits optimistic UI updates.
+
+Lists use cursor pagination (`{"next", "previous", "results"}`), so new posts arriving while someone scrolls don't cause duplicates or skipped posts. Follow `next` until it is `null`. Page size defaults to 20; `?page_size=` goes up to 50.
+
+Images: JPG, PNG or WebP, up to 10 MB, stored under `MEDIA_ROOT/posts/`. In development `runserver` serves them; production needs object storage first (see BACKLOG.md).
 
 ### Waitlist
 

@@ -83,7 +83,19 @@ Step-by-step guide: [DEPLOY.md](DEPLOY.md).
 
 **Done when:** `/api/docs/` returns `401` when logged out on the live server, and expired tokens are cleaned up daily.
 
-### 5. Move off free plans before launch
+### 5. Store feed images in object storage
+
+**Why:** Post images are saved to the server's local disk (`MEDIA_ROOT`). Render's disk is wiped on every deploy and restart, and nothing serves `/media/` when `DJANGO_DEBUG=False`, so uploaded images would break in production.
+
+**Steps**
+- [ ] Pick a bucket: Cloudflare R2 (free tier, no egress fees, already on Cloudflare) or Amazon S3
+- [ ] `pip install django-storages[s3]` and point `STORAGES['default']` at the bucket via env vars
+- [ ] Serve images from the bucket's public URL or a Cloudflare custom domain (e.g. `media.loveandtails.com`)
+- [ ] Consider resizing/compressing uploads (phone photos are often 3–5 MB) and stripping EXIF location data
+
+**Done when:** a post image uploaded on the live server still loads after a redeploy.
+
+### 6. Move off free plans before launch
 
 **Why:** Render's free instance sleeps after 15 minutes and takes about a minute to wake, which is too slow for real users (e.g. someone joining the waitlist).
 

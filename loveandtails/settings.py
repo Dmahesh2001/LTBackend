@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'apps.core',
     'apps.users',
     'apps.waitlist',
+    'apps.feeds',
 ]
 
 MIDDLEWARE = [
